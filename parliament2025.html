@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>จำลองรัฐสภา & คณะรัฐมนตรี - Thai Politics Simulator</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@200;300;400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-main: #333;
+            --text-light: #666;
+            --gov-color: #2ecc71;
+            --opp-color: #e74c3c;
+            --vacant-color: #e0e0e0;
+            --active-tab: #004aad;
+        }
+
+        body {
+            font-family: 'Kanit', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1, h2, h3, h4 { margin: 0 0 10px 0; }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* --- Tab System --- */
+        .tab-nav {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 0;
+        }
+        
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 10px 20px;
+            font-family: 'Kanit', sans-serif;
+            font-size: 1.1rem;
+            cursor: pointer;
+            color: #888;
+            border-bottom: 4px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .tab-btn:hover { color: #555; }
+        
+        .tab-btn.active {
+            color: var(--active-tab);
+            border-bottom-color: var(--active-tab);
+            font-weight: 600;
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* --- Layout Grids --- */
+        .layout-grid {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+        }
+
+        /* --- Cards & General UI --- */
+        .card {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        .info-section h3 { font-size: 1.1rem; color: #004aad; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .info-row { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 8px; }
+        .info-label { color: var(--text-light); }
+        .info-value { font-weight: 500; text-align: right; }
+        .highlight-red { color: #d63031; font-weight: bold; }
+        
+        /* --- Parliament Specific --- */
+        .party-control { max-height: 600px; overflow-y: auto; }
+        .party-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #f0f0f0; }
+        .party-name-box { flex: 1; }
+        .party-label { font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; gap: 5px; }
+        .color-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+        
+        .input-group { display: flex; gap: 5px; margin-top: 5px; }
+        .input-wrapper { display: flex; flex-direction: column; align-items: center; }
+        .input-wrapper span { font-size: 0.7rem; color: #888; }
+        input[type="number"] { width: 60px; padding: 5px; border: 1px solid #ddd; border-radius: 5px; text-align: center; font-family: 'Kanit', sans-serif; }
+        input:focus { outline: none; border-color: #004aad; }
+
+        .parliament-visual {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 40px 20px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            min-height: 400px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #parliament-canvas { max-width: 100%; }
+        .summary-stats { position: absolute; bottom: 20px; display: flex; justify-content: space-around; width: 80%; font-size: 1.2rem; }
+        .stat-box { text-align: center; }
+        .stat-num { font-size: 2rem; font-weight: bold; }
+        .gov-stat { color: var(--gov-color); }
+        .opp-stat { color: var(--opp-color); }
+
+        .bars-container { display: flex; flex-direction: column; gap: 10px; }
+        .bar-row { display: grid; grid-template-columns: 150px 1fr 50px; align-items: center; gap: 15px; }
+        .bar-name { font-size: 0.9rem; text-align: right; }
+        .bar-track { background: #eee; height: 12px; border-radius: 6px; overflow: hidden; position: relative; }
+        .bar-fill { height: 100%; border-radius: 6px; transition: width 0.5s ease; }
+        .bar-value { font-size: 0.9rem; font-weight: 600; }
+
+        .balance-bar-container { height: 30px; background: #eee; border-radius: 15px; overflow: hidden; display: flex; margin-bottom: 20px; position: relative; }
+        .balance-segment { height: 100%; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.8rem; transition: width 0.3s; }
+        .marker-250 { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: #333; z-index: 10; }
+
+        /* --- Cabinet Specific --- */
+        .cabinet-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .ministry-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            padding: 15px;
+            border-left: 5px solid #ddd; /* Default border color */
+        }
+
+        .ministry-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .minister-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            padding-bottom: 8px;
+            border-bottom: 1px dashed #eee;
+        }
+        .minister-item:last-child { border-bottom: none; margin-bottom: 0; }
+
+        .role-badge {
+            font-size: 0.7rem;
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-right: 5px;
+            color: #666;
+            white-space: nowrap;
+        }
+        
+        .minister-name { font-weight: 500; }
+        .party-tag { font-size: 0.75rem; color: #888; margin-left: 5px; }
+
+        .cabinet-stats-container {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .chart-donut {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            margin: 0 auto;
+            background: conic-gradient(#eee 0% 100%);
+        }
+        
+        .other-pos-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .status-bar { grid-column: 1 / -1; text-align: center; color: #888; font-size: 0.8rem; margin-top: 20px; }
+
+        @media (max-width: 900px) {
+            .layout-grid { grid-template-columns: 1fr; }
+            .cabinet-stats-container { grid-template-columns: 1fr; }
+            .other-pos-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <nav class="tab-nav">
+            <button class="tab-btn active" onclick="switchTab('parliament')">รัฐสภา (Parliament)</button>
+            <button class="tab-btn" onclick="switchTab('cabinet')">คณะรัฐมนตรี (Cabinet)</button>
+        </nav>
+
+        <div id="parliament" class="tab-content active">
+            <div class="layout-grid">
+                <aside class="sidebar">
+                    <div class="card info-section">
+                        <h3>ข้อมูลสภาผู้แทนราษฎร</h3>
+                        <div class="info-row"><span class="info-label">สถานะ:</span> <span class="info-value highlight-red">ว่าง (ยุบสภา)</span></div>
+                        <div class="info-row"><span class="info-label">จำนวน ส.ส.:</span> <span class="info-value">500 ที่นั่ง</span></div>
+                        <div class="info-row"><span class="info-label">ระบบเลือกตั้ง:</span> <span class="info-value">คู่ขนาน (400/100)</span></div>
+                        <hr>
+                        <div class="info-row"><span class="info-label">นายกรัฐมนตรี (รักษาการ):</span> <span class="info-value">นายอนุทิน ชาญวีรกูล</span></div>
+                        <div class="info-row"><span class="info-label">ประธานวุฒิสภา:</span> <span class="info-value">นายมงคล สุระสัจจะ</span></div>
+                        <div style="font-size: 0.75rem; color: #999; margin-top: 10px;">
+                            *ตำแหน่งประธานสภาฯ, ผู้นำฝ่ายค้าน, ประธานวิป ว่างลงตั้งแต่วันที่ 12 ธันวาคม 2568
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>จำลองจัดตั้งรัฐบาล</h3>
+                        <p style="font-size: 0.8rem; color: #666; margin-bottom: 15px;">กรอกจำนวนที่นั่งเพื่อดูแผนผัง</p>
+                        <div class="party-control" id="partyInputs"></div>
+                    </div>
+                </aside>
+
+                <main class="main-display">
+                    <div class="card" style="text-align: center;">
+                        <h2>แผนผังที่นั่งสมาชิกสภาผู้แทนราษฎร</h2>
+                        
+                        <div style="padding: 0 50px;">
+                            <div style="display:flex; justify-content:space-between; font-size: 0.8rem; margin-bottom: 5px;">
+                                <span>ฝ่ายค้าน <span id="txtOppTotal">0</span></span>
+                                <span>กึ่งหนึ่ง (250)</span>
+                                <span>รัฐบาล <span id="txtGovTotal">0</span></span>
+                            </div>
+                            <div class="balance-bar-container">
+                                <div class="marker-250" title="กึ่งหนึ่ง 250 เสียง"></div>
+                                <div id="barOpp" class="balance-segment" style="background-color: #e74c3c; width: 0%;"></div>
+                                <div id="barVacant" class="balance-segment" style="background-color: #e0e0e0; width: 100%; color: #333;">ว่าง</div>
+                                <div id="barGov" class="balance-segment" style="background-color: #2ecc71; width: 0%;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="parliament-visual">
+                        <svg id="parliament-svg" width="600" height="300" viewBox="0 0 600 300"></svg>
+                        <div class="summary-stats">
+                            <div class="stat-box opp-stat"><div class="stat-num" id="statOpp">0</div><div>ฝ่ายค้าน</div></div>
+                            <div class="stat-box"><div class="stat-num" style="color: #ccc;" id="statVacant">500</div><div>ว่าง</div></div>
+                            <div class="stat-box gov-stat"><div class="stat-num" id="statGov">0</div><div>รัฐบาล</div></div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>เปรียบเทียบจำนวนที่นั่งรายพรรค</h3>
+                        <div class="bars-container" id="barChartArea"></div>
+                    </div>
+                </main>
+            </div>
+        </div>
+
+        <div id="cabinet" class="tab-content">
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
+                    <div>
+                        <h2>คณะรัฐมนตรีไทย คณะที่ 65 (รักษาการ)</h2>
+                        <p style="color:#666;">ข้อมูล ณ วันที่ 13 ธันวาคม 2568</p>
+                    </div>
+                    <div style="text-align:right;">
+                        <h3 style="color: #00008B; margin:0;">นายอนุทิน ชาญวีรกูล</h3>
+                        <span style="font-size:0.9rem; color:#666;">นายกรัฐมนตรี</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cabinet-stats-container">
+                <div class="card" style="text-align:center;">
+                    <h4>สัดส่วนรัฐมนตรี (รายพรรค)</h4>
+                    <div id="cabinet-donut" class="chart-donut"></div>
+                    <div id="cabinet-legend" style="text-align:left; margin-top:15px; font-size:0.85rem;"></div>
+                </div>
+                
+                <div class="cabinet-grid" id="ministry-grid">
+                    </div>
+            </div>
+
+            <div class="card">
+                <h3>ตำแหน่งข้าราชการการเมืองอื่น ๆ</h3>
+                <div class="other-pos-grid" id="other-pos-grid">
+                    </div>
+            </div>
+        </div>
+        
+        <div class="status-bar">
+            ออกแบบจำลองโดยระบบ AI (Gemini) • ข้อมูล ณ วันที่ 13 ธันวาคม 2568
+        </div>
+    </div>
+
+    <script>
+        // --- DATA SETUP ---
+        const parties = [
+            { id: 'pp', name: 'ประชาชน', color: '#FF7F00', gov: 0, opp: 0 },
+            { id: 'pt', name: 'เพื่อไทย', color: '#E60000', gov: 0, opp: 0 },
+            { id: 'bjt', name: 'ภูมิใจไทย', color: '#00008B', gov: 0, opp: 0 },
+            { id: 'rtsc', name: 'รวมไทยสร้างชาติ', color: '#0000FF', gov: 0, opp: 0 },
+            { id: 'kt', name: 'กล้าธรรม', color: '#008000', gov: 0, opp: 0 },
+            { id: 'dem', name: 'ประชาธิปัตย์', color: '#40E0D0', gov: 0, opp: 0 },
+            { id: 'pprp', name: 'พลังประชารัฐ', color: '#008080', gov: 0, opp: 0 },
+            { id: 'ctp', name: 'ชาติไทยพัฒนา', color: '#FFC0CB', gov: 0, opp: 0 },
+            { id: 'pcc', name: 'ประชาชาติ', color: '#FFD700', gov: 0, opp: 0 },
+            { id: 'tst', name: 'ไทยสร้างไทย', color: '#800080', gov: 0, opp: 0 },
+            { id: 'cp', name: 'ชาติพัฒนา', color: '#FFAE42', gov: 0, opp: 0 },
+            { id: 'trp', name: 'ไทรวมพลัง', color: '#E056FD', gov: 0, opp: 0 },
+            { id: 'nd', name: 'ประชาธิปไตยใหม่', color: '#FFFACD', gov: 0, opp: 0 },
+            { id: 'tkn', name: 'ไทยก้าวหน้า', color: '#FFA500', gov: 0, opp: 0 },
+            { id: 'srt', name: 'เสรีรวมไทย', color: '#DAA520', gov: 0, opp: 0 },
+            { id: 'fair', name: 'เป็นธรรม', color: '#4682B4', gov: 0, opp: 0 },
+            { id: 'ind', name: 'อิสระ', color: '#555555', gov: 0, opp: 0 },
+            { id: 'pt-sakda', name: 'กลุ่มศักดิ์ดา-สส.เพื่อไทย', color: '#E60000', gov: 0, opp: 0 }
+        ];
+
+        // Helper to get color
+        function getPartyColor(name) {
+            if(name.includes('ภูมิใจไทย')) return '#00008B';
+            if(name.includes('รวมไทยสร้างชาติ')) return '#0000FF';
+            if(name.includes('กล้าธรรม')) return '#008000';
+            if(name.includes('พลังประชารัฐ')) return '#008080';
+            if(name.includes('เพื่อไทย')) return '#E60000';
+            if(name.includes('อิสระ')) return '#555555';
+            return '#999';
+        }
+
+        // Cabinet Data Structure
+        const cabinetData = [
+            {
+                ministry: "สำนักนายกรัฐมนตรี",
+                ministers: [
+                    { role: "นายกรัฐมนตรี", name: "นายอนุทิน ชาญวีรกูล", party: "ภูมิใจไทย" },
+                    { role: "รองนายกรัฐมนตรี (กฎหมาย)", name: "นายบวรศักดิ์ อุวรรณโณ", party: "อิสระ" },
+                    { role: "รองนายกรัฐมนตรี", name: "นายโสภณ ซารัมย์", party: "ภูมิใจไทย" },
+                    { role: "รองนายกรัฐมนตรี", name: "นายพิพัฒน์ รัชกิจประการ", party: "ภูมิใจไทย" },
+                    { role: "รองนายกรัฐมนตรี", name: "นายเอกนิติ นิติทัณฑ์ประภาศ", party: "อิสระ" },
+                    { role: "รองนายกรัฐมนตรี", name: "ร้อยเอกธรรมนัส พรหมเผ่า", party: "กล้าธรรม" },
+                    { role: "รองนายกรัฐมนตรี", name: "นายสุชาติ ชมกลิ่น", party: "รวมไทยสร้างชาติ" },
+                    { role: "รมต.ประจำสำนักนายกฯ", name: "นางศุภมาส อิศรภักดี", party: "ภูมิใจไทย" },
+                    { role: "รมต.ประจำสำนักนายกฯ", name: "นายภราดร ปริศนานันทกุล", party: "ภูมิใจไทย" },
+                    { role: "รมต.ประจำสำนักนายกฯ", name: "นายนภินทร ศรีสรรพางค์", party: "ภูมิใจไทย" },
+                    { role: "รมต.ประจำสำนักนายกฯ", name: "นายสันติ ปิยะทัต", party: "พลังประชารัฐ" }
+                ]
+            },
+            {
+                ministry: "กระทรวงมหาดไทย",
+                ministers: [
+                    { role: "รัฐมนตรีว่าการ", name: "นายอนุทิน ชาญวีรกูล", party: "ภูมิใจไทย" },
+                    { role: "รัฐมนตรีช่วย", name: "นายทรงศักดิ์ ทองศรี", party: "ภูมิใจไทย" },
+                    { role: "รัฐมนตรีช่วย", name: "นายศักดิ์ดา วิเชียรศิลป์", party: "กลุ่มศักดิ์ดา-สส.เพื่อไทย" },
+                    { role: "รัฐมนตรีช่วย", name: "นางสาวศศิธร กิตติธรกุล", party: "ภูมิใจไทย" }
+                ]
+            },
+            {
+                ministry: "กระทรวงกลาโหม",
+                ministers: [
+                    { role: "รัฐมนตรีว่าการ", name: "พลเอกณัฐพล นาคพาณิชย์", party: "อิสระ" },
+                    { role: "รัฐมนตรีช่วย", name: "พลโทอดุลย์ บุญธรรมเจริญ", party: "อิสระ" }
+                ]
+            },
+            {
+                ministry: "กระทรวงการคลัง",
+                ministers: [
+                    { role: "รัฐมนตรีว่าการ", name: "นายเอกนิติ นิติทัณฑ์ประภาศ", party: "อิสระ" }
+                ]
+            },
+            {
+                ministry: "กระทรวงคมนาคม",
+                ministers: [
+                    { role: "รัฐมนตรีว่าการ", name: "นายพิพัฒน์ รัชกิจประการ", party: "ภูมิใจไทย" },
+                    { role: "รัฐมนตรีช่วย", name: "นางสาวมัลลิกา จิระพันธุ์วาณิช", party: "ภูมิใจไทย" }
+                ]
+            },
+            {
+                ministry: "กระทรวงพาณิชย์",
+                ministers: [
+                    { role: "รัฐมนตรีว่าการ", name: "นางศุภจี สุธรรมพันธุ์", party: "อิสระ" }
+                ]
+            },
+            {
+                ministry: "กระทรวงเกษตรและสหกรณ์",
+                ministers: [
+                    { role: "รัฐมนตรีว่าการ", name: "ร้อยเอกธรรมนัส พรหมเผ่า", party: "กล้าธรรม" },
+                    { role: "รัฐมนตรีช่วย", name: "นายนเรศ ธำรงค์ทิพยคุณ", party: "กล้าธรรม" },
+                    { role: "รัฐมนตรีช่วย", name: "นายอามินทร์ มะยูโซ๊ะ", party: "กล้าธรรม" }
+                ]
+            },
+            {
+                ministry: "กระทรวงพลังงาน",
+                ministers: [
+                    { role: "รัฐมนตรีว่าการ", name: "นายอรรถพล ฤกษ์พิบูลย์", party: "อิสระ" }
+                ]
+            },
+            {
+                ministry: "กระทรวงสาธารณสุข",
+                ministers: [
+                    { role: "รัฐมนตรีว่าการ", name: "นายพัฒนา พร้อมพัฒน์", party: "พลังประชารัฐ" },
+                    { role: "รัฐมนตรีช่วย", name: "นายวรโชติ สุคนธ์ขจร", party: "พลังประชารัฐ" }
+                ]
+            },
+            {
+                ministry: "กระทรวงอุตสาหกรรม",
+                ministers: [
+                    { role: "รัฐมนตรีว่าการ", name: "นายธนกร วังบุญคงชนะ", party: "รวมไทยสร้างชาติ" },
+                    { role: "รัฐมนตรีช่วย", name: "จ่าเอก ยศสิงห์ เหลี่ยมเลิศ", party: "รวมไทยสร้างชาติ" }
+                ]
+            },
+            {
+                ministry: "กระทรวงศึกษาธิการ",
+                ministers: [
+                    { role: "รัฐมนตรีว่าการ", name: "นางนฤมล ภิญโญสินวัฒน์", party: "กล้าธรรม" },
+                    { role: "รัฐมนตรีช่วย", name: "นายองอาจ วงษ์ประยูร", party: "กล้าธรรม" }
+                ]
+            },
+            {
+                ministry: "กระทรวงแรงงาน",
+                ministers: [
+                    { role: "รัฐมนตรีว่าการ", name: "นางสาวตรีนุช เทียนทอง", party: "พลังประชารัฐ" }
+                ]
+            },
+            {
+                ministry: "กระทรวงทรัพยากรธรรมชาติฯ",
+                ministers: [
+                    { role: "รัฐมนตรีว่าการ", name: "นายสุชาติ ชมกลิ่น", party: "รวมไทยสร้างชาติ" }
+                ]
+            },
+            {
+                ministry: "กระทรวงดิจิทัลฯ (DES)",
+                ministers: [
+                    { role: "รัฐมนตรีว่าการ", name: "นายไชยชนก ชิดชอบ", party: "ภูมิใจไทย" }
+                ]
+            },
+            {
+                ministry: "กระทรวงยุติธรรม",
+                ministers: [
+                    { role: "รัฐมนตรีว่าการ", name: "พลตำรวจโทรุทธพล เนาวรัตน์", party: "อิสระ" }
+                ]
+            },
+            {
+                ministry: "กระทรวงการต่างประเทศ",
+                ministers: [
+                    { role: "รัฐมนตรีว่าการ", name: "นายสีหศักดิ์ พวงเกตุแก้ว", party: "อิสระ" }
+                ]
+            },
+            {
+                ministry: "กระทรวงการพัฒนาสังคมฯ",
+                ministers: [
+                    { role: "รัฐมนตรีว่าการ", name: "นายอัครา พรหมเผ่า", party: "กล้าธรรม" }
+                ]
+            },
+            {
+                ministry: "กระทรวงวัฒนธรรม",
+                ministers: [
+                    { role: "รัฐมนตรีว่าการ", name: "นางสาวซาบีดา ไทยเศรษฐ์", party: "ภูมิใจไทย" }
+                ]
+            },
+            {
+                ministry: "กระทรวงการท่องเที่ยวและกีฬา",
+                ministers: [
+                    { role: "รัฐมนตรีว่าการ", name: "นายอรรถกร ศิริลัทธยากร", party: "กล้าธรรม" }
+                ]
+            },
+            {
+                ministry: "กระทรวง อว.",
+                ministers: [
+                    { role: "รัฐมนตรีว่าการ", name: "นายสุรศักดิ์ พันธ์เจริญวรกุล", party: "ภูมิใจไทย" }
+                ]
+            }
+        ];
+
+        const otherPositions = [
+            { role: "เลขาธิการนายกรัฐมนตรี", name: "นางสาวไตรศุลี ไตรสรณกุล", party: "ภูมิใจไทย" },
+            { role: "โฆษกประจำสำนักนายกรัฐมนตรี", name: "สิริพงศ์ อังคสกุลเกียรติ", party: "ภูมิใจไทย" },
+            { role: "รองโฆษกประจำสำนักนายกฯ", name: "นางสาวลลิดา เพริศวิวัฒนา", party: "รวมไทยสร้างชาติ" },
+            { role: "รองโฆษกประจำสำนักนายกฯ", name: "นางสาวอัยรินทร์ พันธุ์ฤทธิ์", party: "กล้าธรรม" }
+        ];
+
+        // --- CORE FUNCTIONS ---
+
+        function switchTab(tabId) {
+            // UI Update
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+
+            if(tabId === 'cabinet') {
+                renderCabinet();
+            }
+        }
+
+        // --- PARLIAMENT LOGIC (from previous version) ---
+        const VACANT_COLOR = '#FFFFFF';
+        const MAX_SEATS = 500;
+
+        function renderInputs() {
+            const container = document.getElementById('partyInputs');
+            container.innerHTML = '';
+            // Only show main parties for input to save space, or all
+            parties.filter(p => !['ind','pt-sakda'].includes(p.id)).forEach((p, index) => {
+                const row = document.createElement('div');
+                row.className = 'party-row';
+                row.innerHTML = `
+                    <div class="party-name-box">
+                        <span class="party-label">
+                            <span class="color-dot" style="background-color: ${p.color};"></span>
+                            ${p.name}
+                        </span>
+                    </div>
+                    <div class="input-group">
+                        <div class="input-wrapper"><span>ฝ่ายค้าน</span><input type="number" min="0" value="${p.opp}" onchange="updateData(${index}, 'opp', this.value)"></div>
+                        <div class="input-wrapper"><span>รัฐบาล</span><input type="number" min="0" value="${p.gov}" onchange="updateData(${index}, 'gov', this.value)"></div>
+                    </div>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function updateData(index, side, value) {
+            // Find index in original array (simple here as we filtered but original array is source)
+            // Actually loop uses original index if we didn't filter, but above filter might mess index.
+            // Let's rely on ID matching for robustness if needed, but for now assuming filter matches order in full logic or just render all.
+            // To simplify: I'll render all in input for this version to avoid index mismatch.
+            const val = parseInt(value) || 0;
+            if (side === 'gov') parties[index].gov = val;
+            if (side === 'opp') parties[index].opp = val;
+            renderVisuals();
+        }
+
+        function renderVisuals() {
+            let totalGov = 0, totalOpp = 0, seatList = [];
+            parties.forEach(p => { totalOpp += p.opp; for(let i=0; i<p.opp; i++) seatList.push(p.color); });
+            let govSeats = [];
+            parties.forEach(p => { totalGov += p.gov; for(let i=0; i<p.gov; i++) govSeats.push(p.color); });
+            
+            const totalFilled = totalGov + totalOpp;
+            const vacant = Math.max(0, MAX_SEATS - totalFilled);
+            
+            for(let i=0; i<vacant; i++) seatList.push(VACANT_COLOR);
+            seatList = seatList.concat(govSeats);
+
+            document.getElementById('statGov').innerText = totalGov;
+            document.getElementById('statOpp').innerText = totalOpp;
+            document.getElementById('statVacant').innerText = vacant;
+            document.getElementById('txtGovTotal').innerText = totalGov;
+            document.getElementById('txtOppTotal').innerText = totalOpp;
+
+            const pOpp = (totalOpp / 500) * 100;
+            const pGov = (totalGov / 500) * 100;
+            const pVac = 100 - pOpp - pGov;
+
+            document.getElementById('barOpp').style.width = `${pOpp}%`;
+            document.getElementById('barGov').style.width = `${pGov}%`;
+            document.getElementById('barVacant').style.width = `${pVac}%`;
+            document.getElementById('barVacant').innerText = vacant > 0 ? '' : '';
+
+            drawParliament(seatList);
+            drawBarChart();
+        }
+
+        function drawParliament(seatColors) {
+            const svg = document.getElementById('parliament-svg');
+            svg.innerHTML = ''; 
+            const rows = 12; 
+            const startRadius = 60;
+            const centerX = 300;
+            const centerY = 280;
+            const seatsPerRow = [24, 28, 32, 35, 38, 41, 44, 47, 50, 52, 54, 55]; 
+            let seatIndex = 0;
+
+            for (let r = 0; r < rows; r++) {
+                const n = seatsPerRow[r];
+                const radius = startRadius + (r * 18); 
+                const angleStep = 180 / (n - 1); 
+                for (let i = 0; i < n; i++) {
+                    const angle = 180 - (i * angleStep);
+                    const rad = angle * (Math.PI / 180);
+                    const x = centerX + (radius * Math.cos(rad));
+                    const y = centerY - (radius * Math.sin(rad));
+                    const color = seatColors[seatIndex] || VACANT_COLOR;
+                    const stroke = color === VACANT_COLOR ? '#eee' : 'none';
+                    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                    circle.setAttribute("cx", x); circle.setAttribute("cy", y); circle.setAttribute("r", 5);
+                    circle.setAttribute("fill", color); circle.setAttribute("stroke", stroke); circle.setAttribute("stroke-width", 1);
+                    svg.appendChild(circle);
+                    seatIndex++;
+                }
+            }
+        }
+
+        function drawBarChart() {
+            const container = document.getElementById('barChartArea');
+            container.innerHTML = '';
+            let partyTotals = parties.map(p => ({ ...p, total: p.gov + p.opp })).filter(p => p.total > 0);
+            partyTotals.sort((a, b) => b.total - a.total);
+            const maxVal = partyTotals.length > 0 ? partyTotals[0].total : 1;
+
+            partyTotals.forEach(p => {
+                const width = (p.total / maxVal) * 100;
+                const div = document.createElement('div');
+                div.className = 'bar-row';
+                div.innerHTML = `
+                    <div class="bar-name">${p.name}</div>
+                    <div class="bar-track"><div class="bar-fill" style="width: ${width}%; background-color: ${p.color};"></div></div>
+                    <div class="bar-value">${p.total}</div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // --- CABINET LOGIC ---
+        function renderCabinet() {
+            // 1. Render Ministry Cards
+            const container = document.getElementById('ministry-grid');
+            container.innerHTML = '';
+            
+            // Count for chart
+            let partyCounts = {};
+
+            cabinetData.forEach(m => {
+                const card = document.createElement('div');
+                card.className = 'ministry-card';
+                card.style.borderLeftColor = getPartyColor(m.ministers[0].party); // Border color based on top minister
+
+                let ministersHtml = '';
+                m.ministers.forEach(p => {
+                    const pColor = getPartyColor(p.party);
+                    ministersHtml += `
+                        <div class="minister-item">
+                            <div style="flex:1;">
+                                <span class="role-badge">${p.role}</span>
+                                <div class="minister-name">${p.name}</div>
+                                <div style="display:flex; align-items:center;">
+                                    <div class="color-dot" style="background:${pColor}; width:8px; height:8px;"></div>
+                                    <span class="party-tag">${p.party}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Add to stats (Count Unique Ministers logic or Position logic? Let's do Position count for simplicity in visuals)
+                    // Simplify party name for key
+                    let pKey = p.party;
+                    if(!partyCounts[pKey]) partyCounts[pKey] = { count: 0, color: pColor };
+                    partyCounts[pKey].count++;
+                });
+
+                card.innerHTML = `
+                    <div class="ministry-title">${m.ministry}</div>
+                    ${ministersHtml}
+                `;
+                container.appendChild(card);
+            });
+
+            // 2. Render Donut Chart
+            drawCabinetChart(partyCounts);
+
+            // 3. Render Other Positions
+            const otherContainer = document.getElementById('other-pos-grid');
+            otherContainer.innerHTML = '';
+            otherPositions.forEach(op => {
+                const pColor = getPartyColor(op.party);
+                const div = document.createElement('div');
+                div.className = 'minister-item';
+                div.style.background = '#fff';
+                div.style.padding = '10px';
+                div.style.borderRadius = '8px';
+                div.innerHTML = `
+                    <div style="flex:1;">
+                        <span class="role-badge">${op.role}</span>
+                        <div class="minister-name">${op.name}</div>
+                         <div style="display:flex; align-items:center;">
+                            <div class="color-dot" style="background:${pColor}; width:8px; height:8px;"></div>
+                            <span class="party-tag">${op.party}</span>
+                        </div>
+                    </div>
+                `;
+                otherContainer.appendChild(div);
+            });
+        }
+
+        function drawCabinetChart(data) {
+            // Convert to array and sort
+            const sorted = Object.keys(data).map(key => ({
+                name: key,
+                count: data[key].count,
+                color: data[key].color
+            })).sort((a,b) => b.count - a.count);
+
+            const total = sorted.reduce((sum, item) => sum + item.count, 0);
+            let currentAngle = 0;
+            let gradientStr = [];
+
+            sorted.forEach(item => {
+                const percentage = (item.count / total) * 100;
+                gradientStr.push(`${item.color} 0 ${percentage}%`);
+            });
+            
+            // Build conic gradient string is tricky in pure JS loop for multiple stops
+            // Simpler approach: Calculate cumulative percentages
+            let stops = [];
+            let cumPercent = 0;
+            sorted.forEach(item => {
+                const p = (item.count / total) * 100;
+                stops.push(`${item.color} ${cumPercent}% ${cumPercent + p}%`);
+                cumPercent += p;
+            });
+
+            const chart = document.getElementById('cabinet-donut');
+            chart.style.background = `conic-gradient(${stops.join(', ')})`;
+
+            // Legend
+            const legend = document.getElementById('cabinet-legend');
+            legend.innerHTML = sorted.map(s => 
+                `<div style="display:inline-block; margin-right:10px; margin-bottom:5px;">
+                    <span class="color-dot" style="background:${s.color}"></span> 
+                    ${s.name} (${s.count})
+                 </div>`
+            ).join('');
+        }
+
+        // Init
+        renderInputs();
+        renderVisuals();
+    </script>
+</body>
+</html>
+
+```
