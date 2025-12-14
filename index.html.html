@@ -68,6 +68,35 @@
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
+        /* --- View Switcher (New) --- */
+        .view-switcher {
+            display: flex;
+            background: #e0e0e0;
+            border-radius: 20px;
+            padding: 4px;
+            width: fit-content;
+            margin-bottom: 20px;
+        }
+
+        .view-btn {
+            padding: 6px 20px;
+            border-radius: 16px;
+            border: none;
+            background: transparent;
+            font-family: 'Kanit', sans-serif;
+            font-size: 0.9rem;
+            cursor: pointer;
+            color: #666;
+            transition: all 0.3s;
+        }
+
+        .view-btn.active {
+            background: #fff;
+            color: var(--active-tab);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            font-weight: 500;
+        }
+
         /* --- Layout Grids --- */
         .layout-grid {
             display: grid;
@@ -138,7 +167,7 @@
         /* --- Cabinet Specific --- */
         .cabinet-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
             gap: 20px;
         }
 
@@ -147,7 +176,7 @@
             border-radius: 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
             padding: 15px;
-            border-left: 5px solid #ddd; /* Default border color */
+            border-left: 5px solid #ddd;
         }
 
         .ministry-title {
@@ -157,7 +186,7 @@
             margin-bottom: 10px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            justify-content: space-between;
         }
 
         .minister-item {
@@ -178,6 +207,17 @@
             margin-right: 5px;
             color: #666;
             white-space: nowrap;
+        }
+
+        .ministry-tag {
+            font-size: 0.7rem;
+            background: #e3f2fd;
+            color: #004aad;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-right: 5px;
+            display: inline-block;
+            margin-bottom: 2px;
         }
         
         .minister-name { font-weight: 500; }
@@ -301,14 +341,23 @@
                     <div id="cabinet-legend" style="text-align:left; margin-top:15px; font-size:0.85rem;"></div>
                 </div>
                 
-                <div class="cabinet-grid" id="ministry-grid">
+                <div style="width:100%;">
+                    <div class="view-switcher">
+                        <button class="view-btn active" id="btn-view-ministry" onclick="setCabinetView('ministry')">แยกตามกระทรวง</button>
+                        <button class="view-btn" id="btn-view-party" onclick="setCabinetView('party')">แยกตามพรรคการเมือง</button>
                     </div>
-            </div>
 
-            <div class="card">
-                <h3>ตำแหน่งข้าราชการการเมืองอื่น ๆ</h3>
-                <div class="other-pos-grid" id="other-pos-grid">
+                    <div class="cabinet-grid" id="ministry-grid">
+                        </div>
+                    
+                    <div id="other-pos-container" style="margin-top:20px;">
+                        <div class="card">
+                            <h3>ตำแหน่งข้าราชการการเมืองอื่น ๆ</h3>
+                            <div class="other-pos-grid" id="other-pos-grid">
+                                </div>
+                        </div>
                     </div>
+                </div>
             </div>
         </div>
         
@@ -340,7 +389,6 @@
             { id: 'pt-sakda', name: 'กลุ่มศักดิ์ดา-สส.เพื่อไทย', color: '#E60000', gov: 0, opp: 0 }
         ];
 
-        // Helper to get color
         function getPartyColor(name) {
             if(name.includes('ภูมิใจไทย')) return '#00008B';
             if(name.includes('รวมไทยสร้างชาติ')) return '#0000FF';
@@ -351,7 +399,6 @@
             return '#999';
         }
 
-        // Cabinet Data Structure
         const cabinetData = [
             {
                 ministry: "สำนักนายกรัฐมนตรี",
@@ -362,7 +409,7 @@
                     { role: "รองนายกรัฐมนตรี", name: "นายพิพัฒน์ รัชกิจประการ", party: "ภูมิใจไทย" },
                     { role: "รองนายกรัฐมนตรี", name: "นายเอกนิติ นิติทัณฑ์ประภาศ", party: "อิสระ" },
                     { role: "รองนายกรัฐมนตรี", name: "ร้อยเอกธรรมนัส พรหมเผ่า", party: "กล้าธรรม" },
-                    { role: "รองนายกรัฐมนตรี", name: "นายสุชาติ ชมกลิ่น", party: "รวมไทยสร้างชาติ" },
+                    { role: "รองนายกรัฐมนตรี", name: "นายสุชาติ ชมกลิ่น", party: "ภูมิใจไทย" },
                     { role: "รมต.ประจำสำนักนายกฯ", name: "นางศุภมาส อิศรภักดี", party: "ภูมิใจไทย" },
                     { role: "รมต.ประจำสำนักนายกฯ", name: "นายภราดร ปริศนานันทกุล", party: "ภูมิใจไทย" },
                     { role: "รมต.ประจำสำนักนายกฯ", name: "นายนภินทร ศรีสรรพางค์", party: "ภูมิใจไทย" },
@@ -374,7 +421,7 @@
                 ministers: [
                     { role: "รัฐมนตรีว่าการ", name: "นายอนุทิน ชาญวีรกูล", party: "ภูมิใจไทย" },
                     { role: "รัฐมนตรีช่วย", name: "นายทรงศักดิ์ ทองศรี", party: "ภูมิใจไทย" },
-                    { role: "รัฐมนตรีช่วย", name: "นายศักดิ์ดา วิเชียรศิลป์", party: "ภูมิใจไทย" },
+                    { role: "รัฐมนตรีช่วย", name: "นายศักดิ์ดา วิเชียรศิลป์", party: "กลุ่มศักดิ์ดา-สส.เพื่อไทย" },
                     { role: "รัฐมนตรีช่วย", name: "นางสาวศศิธร กิตติธรกุล", party: "ภูมิใจไทย" }
                 ]
             },
@@ -503,9 +550,9 @@
         ];
 
         // --- CORE FUNCTIONS ---
+        let cabinetViewMode = 'ministry'; // 'ministry' or 'party'
 
         function switchTab(tabId) {
-            // UI Update
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             
@@ -517,14 +564,21 @@
             }
         }
 
-        // --- PARLIAMENT LOGIC (from previous version) ---
+        function setCabinetView(mode) {
+            cabinetViewMode = mode;
+            // Update buttons
+            document.getElementById('btn-view-ministry').className = mode === 'ministry' ? 'view-btn active' : 'view-btn';
+            document.getElementById('btn-view-party').className = mode === 'party' ? 'view-btn active' : 'view-btn';
+            renderCabinet();
+        }
+
+        // --- PARLIAMENT LOGIC ---
         const VACANT_COLOR = '#FFFFFF';
         const MAX_SEATS = 500;
 
         function renderInputs() {
             const container = document.getElementById('partyInputs');
             container.innerHTML = '';
-            // Only show main parties for input to save space, or all
             parties.filter(p => !['ind','pt-sakda'].includes(p.id)).forEach((p, index) => {
                 const row = document.createElement('div');
                 row.className = 'party-row';
@@ -545,10 +599,6 @@
         }
 
         function updateData(index, side, value) {
-            // Find index in original array (simple here as we filtered but original array is source)
-            // Actually loop uses original index if we didn't filter, but above filter might mess index.
-            // Let's rely on ID matching for robustness if needed, but for now assuming filter matches order in full logic or just render all.
-            // To simplify: I'll render all in input for this version to avoid index mismatch.
             const val = parseInt(value) || 0;
             if (side === 'gov') parties[index].gov = val;
             if (side === 'opp') parties[index].opp = val;
@@ -638,17 +688,24 @@
 
         // --- CABINET LOGIC ---
         function renderCabinet() {
-            // 1. Render Ministry Cards
+            if (cabinetViewMode === 'ministry') {
+                renderCabinetByMinistry();
+            } else {
+                renderCabinetByParty();
+            }
+        }
+
+        function renderCabinetByMinistry() {
             const container = document.getElementById('ministry-grid');
             container.innerHTML = '';
+            document.getElementById('other-pos-container').style.display = 'block'; // Show other pos separately
             
-            // Count for chart
             let partyCounts = {};
 
             cabinetData.forEach(m => {
                 const card = document.createElement('div');
                 card.className = 'ministry-card';
-                card.style.borderLeftColor = getPartyColor(m.ministers[0].party); // Border color based on top minister
+                card.style.borderLeftColor = getPartyColor(m.ministers[0].party);
 
                 let ministersHtml = '';
                 m.ministers.forEach(p => {
@@ -665,28 +722,24 @@
                             </div>
                         </div>
                     `;
-                    
-                    // Add to stats (Count Unique Ministers logic or Position logic? Let's do Position count for simplicity in visuals)
-                    // Simplify party name for key
                     let pKey = p.party;
                     if(!partyCounts[pKey]) partyCounts[pKey] = { count: 0, color: pColor };
                     partyCounts[pKey].count++;
                 });
 
-                card.innerHTML = `
-                    <div class="ministry-title">${m.ministry}</div>
-                    ${ministersHtml}
-                `;
+                card.innerHTML = `<div class="ministry-title">${m.ministry}</div>${ministersHtml}`;
                 container.appendChild(card);
             });
 
-            // 2. Render Donut Chart
-            drawCabinetChart(partyCounts);
-
-            // 3. Render Other Positions
+            // Render other positions separately in Ministry view
             const otherContainer = document.getElementById('other-pos-grid');
             otherContainer.innerHTML = '';
             otherPositions.forEach(op => {
+                 let pKey = op.party;
+                 if(!partyCounts[pKey]) partyCounts[pKey] = { count: 0, color: getPartyColor(op.party) };
+                 // Optional: include other positions in chart stats? Usually yes for "Political positions"
+                 // partyCounts[pKey].count++; 
+
                 const pColor = getPartyColor(op.party);
                 const div = document.createElement('div');
                 div.className = 'minister-item';
@@ -705,10 +758,90 @@
                 `;
                 otherContainer.appendChild(div);
             });
+
+            drawCabinetChart(partyCounts);
+        }
+
+        function renderCabinetByParty() {
+            const container = document.getElementById('ministry-grid');
+            container.innerHTML = '';
+            document.getElementById('other-pos-container').style.display = 'none'; // Hide separate section, merge in
+
+            // 1. Aggregate Data
+            let partyGroups = {};
+            
+            // Helper to add
+            const addToGroup = (party, item, ministryName = '') => {
+                if(!partyGroups[party]) {
+                    partyGroups[party] = {
+                        name: party,
+                        color: getPartyColor(party),
+                        members: []
+                    };
+                }
+                partyGroups[party].members.push({ ...item, ministryName });
+            };
+
+            // Loop Cabinet
+            cabinetData.forEach(m => {
+                m.ministers.forEach(p => {
+                    addToGroup(p.party, p, m.ministry);
+                });
+            });
+
+            // Loop Other Positions
+            otherPositions.forEach(op => {
+                addToGroup(op.party, op, 'ข้าราชการการเมือง');
+            });
+
+            // 2. Sort Parties by member count
+            const sortedParties = Object.values(partyGroups).sort((a,b) => b.members.length - a.members.length);
+
+            // 3. Render
+            sortedParties.forEach(group => {
+                const card = document.createElement('div');
+                card.className = 'ministry-card';
+                card.style.borderLeftColor = group.color;
+
+                let membersHtml = '';
+                group.members.forEach(m => {
+                    membersHtml += `
+                        <div class="minister-item">
+                            <div style="flex:1;">
+                                <div>
+                                    <span class="ministry-tag">${m.ministryName}</span>
+                                    <span class="role-badge">${m.role}</span>
+                                </div>
+                                <div class="minister-name">${m.name}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                card.innerHTML = `
+                    <div class="ministry-title">
+                        <span>${group.name}</span>
+                        <span style="background:${group.color}; color:#fff; padding:2px 8px; border-radius:10px; font-size:0.8rem;">${group.members.length} คน</span>
+                    </div>
+                    ${membersHtml}
+                `;
+                container.appendChild(card);
+            });
+            
+            // Stats (re-calculate for chart based on just ministers to keep consistent, or all?)
+            // Let's keep chart based on Ministers only to be consistent with Ministry View
+             let partyCounts = {};
+             cabinetData.forEach(m => {
+                m.ministers.forEach(p => {
+                     let pKey = p.party;
+                    if(!partyCounts[pKey]) partyCounts[pKey] = { count: 0, color: getPartyColor(p.party) };
+                    partyCounts[pKey].count++;
+                });
+             });
+             drawCabinetChart(partyCounts);
         }
 
         function drawCabinetChart(data) {
-            // Convert to array and sort
             const sorted = Object.keys(data).map(key => ({
                 name: key,
                 count: data[key].count,
@@ -716,16 +849,6 @@
             })).sort((a,b) => b.count - a.count);
 
             const total = sorted.reduce((sum, item) => sum + item.count, 0);
-            let currentAngle = 0;
-            let gradientStr = [];
-
-            sorted.forEach(item => {
-                const percentage = (item.count / total) * 100;
-                gradientStr.push(`${item.color} 0 ${percentage}%`);
-            });
-            
-            // Build conic gradient string is tricky in pure JS loop for multiple stops
-            // Simpler approach: Calculate cumulative percentages
             let stops = [];
             let cumPercent = 0;
             sorted.forEach(item => {
@@ -737,7 +860,6 @@
             const chart = document.getElementById('cabinet-donut');
             chart.style.background = `conic-gradient(${stops.join(', ')})`;
 
-            // Legend
             const legend = document.getElementById('cabinet-legend');
             legend.innerHTML = sorted.map(s => 
                 `<div style="display:inline-block; margin-right:10px; margin-bottom:5px;">
@@ -753,5 +875,3 @@
     </script>
 </body>
 </html>
-
-```
